@@ -1,6 +1,6 @@
 name: Signal Bot
 
-# Hourly poll: RSI 4H zone snapshot -> CRT check on 1H/4H -> Telegram alert
+# Hourly poll: RSI 4H zone snapshot -> CRT check on 4H -> Telegram alert
 # on confirmation. Runs as a single cycle (signal_bot.py --once) since
 # Actions runners don't stay alive between schedule ticks; dedupe state and
 # logs (monitoring/) are round-tripped through actions/cache so a symbol
