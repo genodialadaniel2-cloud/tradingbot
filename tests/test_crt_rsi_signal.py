@@ -32,7 +32,7 @@ def test_overbought_zone_only_checked_for_bearish_scenario(tmp_path, monkeypatch
     with patch("signals.crt_rsi_signal.fetch_latest_ohlcv", return_value=_bearish_crt_df()):
         results = find_combined_signals(snapshot, now_ms=3_000)
 
-    assert len(results) == 2  # confirms on both 1h and 4h (same fake df returned for both)
+    assert len(results) == 1  # 4h only
     assert all(r.crt.scenario == "bearish" for r in results)
 
 
@@ -75,7 +75,7 @@ def test_already_alerted_candle_is_not_returned_again(tmp_path, monkeypatch):
 
     with patch("signals.crt_rsi_signal.fetch_latest_ohlcv", return_value=_bearish_crt_df()):
         first = find_combined_signals(snapshot, now_ms=3_000)
-        assert len(first) == 2
+        assert len(first) == 1
         # Simulate signal_bot.py having successfully delivered and marked these.
         for cs in first:
             dedupe.mark_alerted(
@@ -94,10 +94,10 @@ def test_does_not_mark_alerted_itself(tmp_path, monkeypatch):
 
     with patch("signals.crt_rsi_signal.fetch_latest_ohlcv", return_value=_bearish_crt_df()):
         first = find_combined_signals(snapshot, now_ms=3_000)
-        assert len(first) == 2
+        assert len(first) == 1
         second = find_combined_signals(snapshot, now_ms=3_000)
 
-    assert len(second) == 2  # unchanged -- nothing was marked alerted by find_combined_signals itself
+    assert len(second) == 1  # unchanged -- nothing was marked alerted by find_combined_signals itself
 
 
 def test_one_symbol_fetch_failure_does_not_break_the_whole_scan(tmp_path, monkeypatch):
@@ -117,7 +117,7 @@ def test_one_symbol_fetch_failure_does_not_break_the_whole_scan(tmp_path, monkey
     with patch("signals.crt_rsi_signal.fetch_latest_ohlcv", side_effect=fake_fetch):
         results = find_combined_signals(snapshot, now_ms=3_000)
 
-    assert len(results) == 2  # both 1h and 4h confirmed for BTC despite BROKEN failing
+    assert len(results) == 1  # 4h confirmed for BTC despite BROKEN failing
     assert all(r.symbol == "BTC/USDT:USDT" for r in results)
 
 
@@ -144,7 +144,7 @@ def test_fresh_confirmation_within_max_age_is_still_alerted(tmp_path, monkeypatc
     with patch("signals.crt_rsi_signal.fetch_latest_ohlcv", return_value=_bearish_crt_df()):
         results = find_combined_signals(snapshot, now_ms=fresh_now_ms)
 
-    assert len(results) == 2
+    assert len(results) == 1
 
 
 def test_no_crt_confirmation_returns_empty(tmp_path, monkeypatch):

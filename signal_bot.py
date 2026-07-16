@@ -1,6 +1,6 @@
 """Signal bot runner.
 
-Pipeline: RSI 4H zone snapshot (regime filter) -> CRT candle pattern on 1H/4H
+Pipeline: RSI 4H zone snapshot (regime filter) -> CRT candle pattern on 4H
 (trigger) -> Telegram alert only when CRT confirms.
   OVERBOUGHT tokens -> checked for CRT bearish only
   OVERSOLD tokens -> checked for CRT bullish only
@@ -48,7 +48,7 @@ for _stream in (sys.stdout, sys.stderr):
 EXCHANGE_ID = "binanceusdm"
 RSI_TIMEFRAME = "4h"
 N_SYMBOLS = None  # None = full crypto perpetual universe (~650+), see get_top_symbols
-POLL_SECONDS = 60 * 60  # hourly, so a new 1H CRT candle is caught promptly
+POLL_SECONDS = 60 * 60  # hourly; the 4H RSI zone and 4H CRT check just get re-evaluated redundantly within their own window, which is harmless since alerts are deduped per closed candle
 
 
 def run_once() -> None:

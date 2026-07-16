@@ -5,7 +5,7 @@ Spec (user-specified):
 - OVERSOLD tokens are checked only for the CRT bullish scenario.
 - NEUTRAL tokens are not checked at all (cuts alert volume to just the two
   zones that matter).
-- CRT is evaluated strictly on 1H and 4H candles.
+- CRT is evaluated on 4H candles only.
 - A Telegram alert fires only when CRT confirms -- the RSI zone alone is
   not sent as an alert, it's the filter that decides which scenario to
   check for on a given token.
@@ -20,7 +20,7 @@ from features.crt import CRTEvent, find_crt_events
 from monitoring.dedupe import already_alerted, dedupe_key
 
 EXCHANGE_ID = "binanceusdm"
-CRT_TIMEFRAMES = ("1h", "4h")
+CRT_TIMEFRAMES = ("4h",)
 CRT_FETCH_LIMIT = 12  # candles scanned per timeframe -- more than 2 so a missed poll or two doesn't permanently lose a confirmation
 MAX_SIGNAL_AGE_MS = 3 * 60 * 60 * 1000  # 3h: covers a missed poll or two at the hourly cadence, without replaying old history as fresh -- verified live: without this, a cold start (empty dedupe state) replayed up to 2 days of 4H history as 2440 "new" signals at once
 

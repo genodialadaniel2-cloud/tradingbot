@@ -2,6 +2,12 @@
 
 Trade/decision journal for this project. Newest entries at top.
 
+## 2026-07-16 — Dropped 1H CRT checks, 4H only
+
+**Change:** `CRT_TIMEFRAMES` in `signals/crt_rsi_signal.py` went from `("1h", "4h")` to `("4h",)`. `features/crt.py`'s detector itself is untouched and still generically supports either timeframe — only the call site changed.
+
+**Why:** user's call, on top of the NEUTRAL-zone volume cut above — narrows the trigger to the timeframe that matches the RSI zone filter's own 4H cadence, cutting alert volume further (roughly halves CRT fetch/check volume per cycle too, since each symbol was being checked on two timeframes before).
+
 ## 2026-07-16 — Dropped the WEAK/NEUTRAL RSI zone from CRT checks
 
 **Change:** the middle RSI band (30-70, previously labeled WEAK) is no longer mapped to a CRT scenario in `signals/crt_rsi_signal.py`'s `ZONE_TO_SCENARIO`. Renamed to NEUTRAL in `classify_rsi_zone` (`features/rsi_heatmap.py`) to reflect that it's now just "not checked," not a third alert scenario. Only OVERBOUGHT (→ CRT bearish) and OVERSOLD (→ CRT bullish) are evaluated now.
