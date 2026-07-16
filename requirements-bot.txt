@@ -1,0 +1,10 @@
+# Slim dependency set for signal_bot.py only (GitHub Actions runner).
+# requirements.txt has more (ta-lib, pyarrow, pytest) for local dev / the
+# v1-v4 backtest pipeline -- ta-lib specifically needs a system C library
+# that isn't present on a bare Actions runner and isn't imported by anything
+# the bot actually runs, so it's deliberately left out here.
+ccxt==4.5.65
+pandas==3.0.3
+numpy==2.5.1
+python-dotenv==1.0.1
+requests==2.34.2

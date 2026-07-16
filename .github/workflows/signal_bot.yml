@@ -1,0 +1,49 @@
+name: Signal Bot
+
+# Hourly poll: RSI 4H zone snapshot -> CRT check on 1H/4H -> Telegram alert
+# on confirmation. Runs as a single cycle (signal_bot.py --once) since
+# Actions runners don't stay alive between schedule ticks; dedupe state and
+# logs (monitoring/) are round-tripped through actions/cache so a symbol
+# already alerted on doesn't fire again next hour.
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: signal-bot
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Restore dedupe/log state
+        uses: actions/cache/restore@v4
+        with:
+          path: monitoring/
+          key: signal-bot-state-${{ github.run_id }}
+          restore-keys: |
+            signal-bot-state-
+
+      - name: Install dependencies
+        run: pip install -r requirements-bot.txt
+
+      - name: Run one signal-bot cycle
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python signal_bot.py --once
+
+      - name: Save dedupe/log state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: monitoring/
+          key: signal-bot-state-${{ github.run_id }}

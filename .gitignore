@@ -1,0 +1,30 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+config/*_config.yaml
+
+# Data (regeneratable from exchange API; not committed)
+data/raw/
+data/processed/
+data/holdout/
+
+# Signal bot runtime state (local logs/dedupe, not source)
+monitoring/signals.jsonl
+monitoring/heartbeat.jsonl
+monitoring/crt_alert_state.json
+monitoring/*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+logs/
+
+# External tool (has its own git repo + node_modules, not part of this project's history)
+tradingview-mcp/
+
+# Generated knowledge graph (regenerable via the graphify skill, not source)
+graphify-out/
