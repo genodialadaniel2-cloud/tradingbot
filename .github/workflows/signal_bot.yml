@@ -5,9 +5,14 @@ name: Signal Bot
 # Actions runners don't stay alive between schedule ticks; dedupe state and
 # logs (monitoring/) are round-tripped through actions/cache so a symbol
 # already alerted on doesn't fire again next hour.
+#
+# Schedule trigger disabled (2026-07-17): GitHub-hosted runners live in
+# Azure US datacenters, which Binance geo-blocks (451 Service unavailable
+# from a restricted location) -- every scheduled run failed for this
+# reason, not a flaky error. Bot runs locally via check_signal_now.bat
+# instead until real 24/7 hosting is set up. workflow_dispatch is kept so
+# this can still be run manually from the Actions tab if ever needed.
 on:
-  schedule:
-    - cron: "0 * * * *"
   workflow_dispatch: {}
 
 concurrency:
