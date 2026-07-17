@@ -2,9 +2,9 @@
 
 Pipeline: RSI 4H zone snapshot (regime filter) -> CRT candle pattern on 4H
 (trigger) -> Telegram alert only when CRT confirms.
-  OVERBOUGHT tokens -> checked for CRT bearish only
+  OVERBOUGHT and STRONG tokens -> checked for CRT bearish only
   OVERSOLD tokens -> checked for CRT bullish only
-  NEUTRAL tokens -> not checked at all
+  WEAK tokens -> not checked at all
 See signals/crt_rsi_signal.py for the combined rule.
 
 Reliability notes (see CLAUDE.md's signal-bot audit entry for the full list

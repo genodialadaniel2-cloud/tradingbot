@@ -47,9 +47,20 @@ def test_oversold_only_checked_for_bullish_scenario(tmp_path, monkeypatch):
     assert results == []
 
 
-def test_neutral_zone_is_never_checked(tmp_path, monkeypatch):
+def test_strong_zone_only_checked_for_bearish_scenario(tmp_path, monkeypatch):
     monkeypatch.setattr(dedupe, "STATE_PATH", tmp_path / "state.json")
-    snapshot = pd.DataFrame([{"symbol": "BTC/USDT:USDT", "rsi": 50.0, "zone": "NEUTRAL"}])
+    snapshot = pd.DataFrame([{"symbol": "BTC/USDT:USDT", "rsi": 65.0, "zone": "STRONG"}])
+
+    with patch("signals.crt_rsi_signal.fetch_latest_ohlcv", return_value=_bearish_crt_df()):
+        results = find_combined_signals(snapshot, now_ms=3_000)
+
+    assert len(results) == 1  # 4h only
+    assert all(r.crt.scenario == "bearish" for r in results)
+
+
+def test_weak_zone_is_never_checked(tmp_path, monkeypatch):
+    monkeypatch.setattr(dedupe, "STATE_PATH", tmp_path / "state.json")
+    snapshot = pd.DataFrame([{"symbol": "BTC/USDT:USDT", "rsi": 50.0, "zone": "WEAK"}])
 
     with patch("signals.crt_rsi_signal.fetch_latest_ohlcv") as mock_fetch:
         results = find_combined_signals(snapshot)

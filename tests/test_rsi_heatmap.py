@@ -11,15 +11,22 @@ def test_classify_rsi_zone_oversold():
     assert classify_rsi_zone(15) == "OVERSOLD"
 
 
-def test_classify_rsi_zone_neutral():
-    assert classify_rsi_zone(31) == "NEUTRAL"
-    assert classify_rsi_zone(50) == "NEUTRAL"
-    assert classify_rsi_zone(69) == "NEUTRAL"
+def test_classify_rsi_zone_strong():
+    assert classify_rsi_zone(60) == "STRONG"
+    assert classify_rsi_zone(65) == "STRONG"
+    assert classify_rsi_zone(69) == "STRONG"
+
+
+def test_classify_rsi_zone_weak():
+    assert classify_rsi_zone(31) == "WEAK"
+    assert classify_rsi_zone(50) == "WEAK"
+    assert classify_rsi_zone(59) == "WEAK"
 
 
 def test_classify_rsi_zone_custom_thresholds():
     assert classify_rsi_zone(65, overbought=60, oversold=40) == "OVERBOUGHT"
     assert classify_rsi_zone(35, overbought=60, oversold=40) == "OVERSOLD"
+    assert classify_rsi_zone(55, overbought=70, strong=50, oversold=30) == "STRONG"
 
 
 def test_is_anomalous_candle_flags_extreme_pump():

@@ -1,10 +1,13 @@
 """Combined signal: RSI 4H zone (regime filter) + CRT candle pattern (trigger).
 
 Spec (user-specified):
-- OVERBOUGHT tokens are checked only for the CRT bearish scenario.
+- OVERBOUGHT and STRONG tokens are checked only for the CRT bearish scenario
+  (STRONG is the 60-70 RSI band directly below OVERBOUGHT -- see
+  features/rsi_heatmap.py's classify_rsi_zone -- and shares its lean).
 - OVERSOLD tokens are checked only for the CRT bullish scenario.
-- NEUTRAL tokens are not checked at all (cuts alert volume to just the two
-  zones that matter).
+- WEAK tokens (the residual 30-60 middle band) are not checked at all, same
+  role the old NEUTRAL zone played -- cuts alert volume to the zones that
+  actually matter.
 - CRT is evaluated on 4H candles only.
 - A Telegram alert fires only when CRT confirms -- the RSI zone alone is
   not sent as an alert, it's the filter that decides which scenario to
@@ -33,6 +36,7 @@ CRT_FETCH_LIMIT = 5  # small buffer over 2 -- fetch_latest_ohlcv trims one still
 
 ZONE_TO_SCENARIO = {
     "OVERBOUGHT": "bearish",
+    "STRONG": "bearish",
     "OVERSOLD": "bullish",
 }
 

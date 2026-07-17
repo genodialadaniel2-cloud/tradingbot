@@ -15,19 +15,29 @@ RSI_PERIOD = 14
 OHLCV_LIMIT = 200  # comfortably more than RSI_PERIOD needs for a stable trailing value
 
 OVERBOUGHT_THRESHOLD = 70
+STRONG_THRESHOLD = 60
 OVERSOLD_THRESHOLD = 30
 
 
-def classify_rsi_zone(value: float, overbought: float = OVERBOUGHT_THRESHOLD, oversold: float = OVERSOLD_THRESHOLD) -> str:
-    """Standard RSI zone convention: >=70 overbought, <=30 oversold, else neutral.
-    NEUTRAL is not mapped to a CRT scenario (see signals/crt_rsi_signal.py's
-    ZONE_TO_SCENARIO) -- only overbought/oversold tokens are checked, to cut
-    alert volume down to the two zones that actually matter."""
+def classify_rsi_zone(
+    value: float,
+    overbought: float = OVERBOUGHT_THRESHOLD,
+    strong: float = STRONG_THRESHOLD,
+    oversold: float = OVERSOLD_THRESHOLD,
+) -> str:
+    """Four-zone RSI convention, matching Coinglass's own RSI heatmap bands:
+    >=70 OVERBOUGHT, 60-70 STRONG, 30-60 WEAK, <=30 OVERSOLD. STRONG sits
+    directly below OVERBOUGHT and shares its (bearish) CRT scenario; WEAK is
+    the residual middle band -- like the NEUTRAL zone it replaces, it is not
+    mapped to any CRT scenario (see signals/crt_rsi_signal.py's
+    ZONE_TO_SCENARIO)."""
     if value >= overbought:
         return "OVERBOUGHT"
+    if value >= strong:
+        return "STRONG"
     if value <= oversold:
         return "OVERSOLD"
-    return "NEUTRAL"
+    return "WEAK"
 
 
 def _is_crypto_perpetual(market: dict) -> bool:
