@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 
 import monitoring.dedupe as dedupe
-from signals.crt_rsi_signal import MAX_SIGNAL_AGE_MS, find_combined_signals
+from signals.crt_rsi_signal import find_combined_signals
 
 
 def _bearish_crt_df():
@@ -121,30 +121,41 @@ def test_one_symbol_fetch_failure_does_not_break_the_whole_scan(tmp_path, monkey
     assert all(r.symbol == "BTC/USDT:USDT" for r in results)
 
 
-def test_stale_confirmation_is_not_alerted_on_cold_start(tmp_path, monkeypatch):
-    # candle_close_time=2000 (ms). If "now" is far beyond MAX_SIGNAL_AGE_MS
-    # past that, this must not fire -- otherwise a cold start (empty dedupe
-    # state) replays old history as if it just happened. Verified live:
-    # without this, a real full-universe first run produced 2440 "signals".
+def test_confirmation_is_alerted_regardless_of_candle_age(tmp_path, monkeypatch):
+    # Manual-trigger model: there's no staleness cutoff any more -- a
+    # confirmation on the two most-recently-closed candles always fires,
+    # however far "now" is from candle_close_time, since each trigger is
+    # by definition checking current state, not replaying history.
     monkeypatch.setattr(dedupe, "STATE_PATH", tmp_path / "state.json")
     snapshot = pd.DataFrame([{"symbol": "BTC/USDT:USDT", "rsi": 75.0, "zone": "OVERBOUGHT"}])
-    stale_now_ms = 2_000 + MAX_SIGNAL_AGE_MS + 1
+    far_future_now_ms = 2_000 + 100 * 60 * 60 * 1000  # 100h after candle_close_time
 
     with patch("signals.crt_rsi_signal.fetch_latest_ohlcv", return_value=_bearish_crt_df()):
-        results = find_combined_signals(snapshot, now_ms=stale_now_ms)
-
-    assert results == []
-
-
-def test_fresh_confirmation_within_max_age_is_still_alerted(tmp_path, monkeypatch):
-    monkeypatch.setattr(dedupe, "STATE_PATH", tmp_path / "state.json")
-    snapshot = pd.DataFrame([{"symbol": "BTC/USDT:USDT", "rsi": 75.0, "zone": "OVERBOUGHT"}])
-    fresh_now_ms = 2_000 + 1_000  # well within MAX_SIGNAL_AGE_MS
-
-    with patch("signals.crt_rsi_signal.fetch_latest_ohlcv", return_value=_bearish_crt_df()):
-        results = find_combined_signals(snapshot, now_ms=fresh_now_ms)
+        results = find_combined_signals(snapshot, now_ms=far_future_now_ms)
 
     assert len(results) == 1
+
+
+def test_only_last_two_closed_candles_are_checked(tmp_path, monkeypatch):
+    # Even if fetch_latest_ohlcv returns a longer backfill window, the
+    # manual-trigger model only evaluates the two most-recently-closed
+    # candles -- an older confirmation earlier in the df must not fire.
+    monkeypatch.setattr(dedupe, "STATE_PATH", tmp_path / "state.json")
+    snapshot = pd.DataFrame([{"symbol": "BTC/USDT:USDT", "rsi": 75.0, "zone": "OVERBOUGHT"}])
+    df = pd.DataFrame(
+        [
+            # An older bearish confirmation pair (rows 0-1) that should be ignored...
+            {"timestamp": 1_000, "open": 105, "high": 110, "low": 100, "close": 105},
+            {"timestamp": 2_000, "open": 105, "high": 112, "low": 104, "close": 106},
+            # ...followed by the latest closed pair (rows 1-2), which does not confirm.
+            {"timestamp": 3_000, "open": 106, "high": 107, "low": 105, "close": 106},
+        ]
+    )
+
+    with patch("signals.crt_rsi_signal.fetch_latest_ohlcv", return_value=df):
+        results = find_combined_signals(snapshot, now_ms=4_000)
+
+    assert results == []
 
 
 def test_no_crt_confirmation_returns_empty(tmp_path, monkeypatch):

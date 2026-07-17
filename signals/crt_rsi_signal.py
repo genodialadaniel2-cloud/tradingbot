@@ -9,6 +9,14 @@ Spec (user-specified):
 - A Telegram alert fires only when CRT confirms -- the RSI zone alone is
   not sent as an alert, it's the filter that decides which scenario to
   check for on a given token.
+
+Manual-trigger model (temporary, while the bot runs from a local one-shot
+script instead of a continuous/scheduled poller -- see CLAUDE.md): every
+run only evaluates whatever the two most-recently-closed 4H candles are
+*at trigger time*, e.g. triggering at 4:30PM checks the 12:00PM and 4:00PM
+candles. There is no backfill scan across older candles and no staleness
+cutoff, because there's no "missed poll" to catch up on -- each trigger is
+by definition checking the current state, not replaying history.
 """
 from dataclasses import dataclass
 
@@ -21,8 +29,7 @@ from monitoring.dedupe import already_alerted, dedupe_key
 
 EXCHANGE_ID = "binanceusdm"
 CRT_TIMEFRAMES = ("4h",)
-CRT_FETCH_LIMIT = 12  # candles scanned per timeframe -- more than 2 so a missed poll or two doesn't permanently lose a confirmation
-MAX_SIGNAL_AGE_MS = 3 * 60 * 60 * 1000  # 3h: covers a missed poll or two at the hourly cadence, without replaying old history as fresh -- verified live: without this, a cold start (empty dedupe state) replayed up to 2 days of 4H history as 2440 "new" signals at once
+CRT_FETCH_LIMIT = 5  # small buffer over 2 -- fetch_latest_ohlcv trims one still-forming candle, this just guarantees 2 closed ones remain
 
 ZONE_TO_SCENARIO = {
     "OVERBOUGHT": "bearish",
@@ -57,7 +64,6 @@ def find_combined_signals(
     owns_exchange = exchange is None
     if owns_exchange:
         exchange = getattr(ccxt, EXCHANGE_ID)({"enableRateLimit": True})
-    reference_now_ms = now_ms if now_ms is not None else exchange.milliseconds()
 
     results = []
     for _, row in zone_snapshot.iterrows():
@@ -69,14 +75,13 @@ def find_combined_signals(
                 df = fetch_latest_ohlcv(
                     exchange, row["symbol"], timeframe=timeframe, limit=CRT_FETCH_LIMIT, now_ms=now_ms
                 )
+                df = df.tail(2)  # only the two most-recently-closed candles matter for a one-shot manual trigger
                 events = find_crt_events(df, symbol=row["symbol"], timeframe=timeframe, scenario=scenario)
             except Exception:
                 # One symbol/timeframe failing (network blip, delisted
                 # mid-scan, etc.) must not take down the whole scan.
                 continue
             for event in events:
-                if reference_now_ms - event.candle_close_time > MAX_SIGNAL_AGE_MS:
-                    continue  # too old to alert on as if it just happened (see MAX_SIGNAL_AGE_MS)
                 key = dedupe_key(row["symbol"], timeframe, scenario)
                 if already_alerted(key, event.candle_close_time):
                     continue
